@@ -43,6 +43,9 @@ import static com.knowware.aw.spellfight1.util.SoundPoolManager.HUMAN_DIE_ID;
 
 //horizontal pbar color code https://android--code.blogspot.com/2015/08/android-progressbar-color.html
 
+//some parts will be moved out eventually.
+//Player stuff should be moved out as well as game related stuff.
+
 public class BattleActivity extends AppCompatActivity implements
         Spellgesture.SpellGestureListener,
         SoundPoolManager.SoundPoolListener,
@@ -123,6 +126,11 @@ public class BattleActivity extends AppCompatActivity implements
         gestureSpellMap= new GestureSpellMap();
     }
 
+    //////////////////////////////////////////////////////////////////
+    //
+    // onStart-
+    //
+
     @Override
     protected void onStart()
     {
@@ -157,11 +165,21 @@ public class BattleActivity extends AppCompatActivity implements
 
     }
 
+    //////////////////////////////////////////////////////////////////
+    //
+    // setupPubNubIntent-
+    //
+
     private void setupPubNubIntent()
     {
         PubnubResponseFilter = new IntentFilter(PubnubService.ACTION_PUBNUB_MSG_RESPONSE);
         registerReceiver(mPubNubResponseReceiver, PubnubResponseFilter);
     }
+
+    //////////////////////////////////////////////////////////////////
+    //
+    // calcDimensions-
+    //
 
     private void calcDimensions()
     {
@@ -176,6 +194,11 @@ public class BattleActivity extends AppCompatActivity implements
         GameDimensions.L3=GameDimensions.vChunk*2;
         GameDimensions.StatsLevel=GameDimensions.vChunk*3;
     }
+
+    //////////////////////////////////////////////////////////////////
+    //
+    // doLoginMsg-
+    //
 
     private void doLoginMsg()
     {
@@ -228,6 +251,13 @@ public class BattleActivity extends AppCompatActivity implements
         }
     };
 
+
+    ////////////////////////////////////////////////////////////
+    //mPubNubResponseReceiver- This area gets the messages from the service
+    //
+    //
+    //@note -
+
     private BroadcastReceiver mPubNubResponseReceiver = new BroadcastReceiver()
     {
 
@@ -270,6 +300,13 @@ public class BattleActivity extends AppCompatActivity implements
 
     };
 
+
+    ////////////////////////////////////////////////////////////
+    //handleMsgs- This area gets the messages from the service
+    //
+    //@param- String smsgs- incoming json msg
+    //@note -
+
     void handleMsgs(String smsgs)
     {
         JSONObject jsonReply=null;
@@ -277,6 +314,12 @@ public class BattleActivity extends AppCompatActivity implements
         Log.d("BattleActivity",smsgs);
     }
 
+    /*****'
+     *
+     * handleData
+     *
+     * @param smsgs- json info
+     */
    void handleData(String smsgs)
    {
        JSONObject jsonReply=null;
@@ -308,6 +351,14 @@ public class BattleActivity extends AppCompatActivity implements
            e.printStackTrace();
        }
    }
+
+    /**
+     *
+     * processMsgs- processes messages from server
+     *
+     * @param msgType-message id
+     * @param msg - JSON message
+     */
 
     private void processMsgs(int msgType, String msg)
     {
@@ -395,7 +446,7 @@ public class BattleActivity extends AppCompatActivity implements
             monsterManager.setDead(id);
 
             mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
-                    "Monster id "+id ));
+                    " Dead Monster id "+id ));
         }
         else if(SpellMsgs.ENEMY_ALL_DEATH.getID()==msgType)
         {
@@ -423,6 +474,9 @@ public class BattleActivity extends AppCompatActivity implements
         else if(SpellMsgs.GESTURE_MAP.getID()==msgType)
         {
             loadGestureMap(msg);
+
+            mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
+                    "Got gesture" ));
         }
         else if(SpellMsgs.NOERROR.getID()==msgType)
         {
@@ -434,6 +488,11 @@ public class BattleActivity extends AppCompatActivity implements
         }
     }
 
+    /******************************************************************************
+     * updateAttackType-
+     *
+     * @param smsgs-
+     */
 
     private void updateAttackType(String smsgs)
     {
@@ -468,11 +527,22 @@ public class BattleActivity extends AppCompatActivity implements
         pickPlayerReaction();
     }
 
+    /**
+     *
+     * playerDeath-
+     *
+     */
     void playerDeath()
     {
         pickPlayerDeath();
     }
 
+
+    /**
+     *
+     * pickPlayerHit-
+     *
+     */
 
     private void pickPlayerHit()
     {
@@ -507,6 +577,12 @@ public class BattleActivity extends AppCompatActivity implements
         //      soundInfo.sound.play();
     }
 
+    /**
+     *
+     * pickPlayerReaction-
+     *
+     */
+
     private void pickPlayerReaction()
     {
         int n;
@@ -532,6 +608,11 @@ public class BattleActivity extends AppCompatActivity implements
         //      soundInfo.sound.play();
     }
 
+    /******************************************************************
+     *
+     * pickPlayerDeath-
+     *
+     */
     void pickPlayerDeath()
     {
         int n;
@@ -554,8 +635,13 @@ public class BattleActivity extends AppCompatActivity implements
         //    soundInfo.sound.play();
     }
 
-
-
+    /**
+     *
+     * onTouchEvent-
+     *
+     * @param event
+     * @return-
+     */
 
     @Override
     public boolean onTouchEvent(MotionEvent event)
@@ -565,6 +651,12 @@ public class BattleActivity extends AppCompatActivity implements
         return super.onTouchEvent(event);
     }
 
+    /**********************************************************************
+     *
+     * flingMsg-
+     *
+     * @param iDir
+     */
 
     @Override
     public void flingMsg(int iDir)
@@ -659,6 +751,15 @@ public class BattleActivity extends AppCompatActivity implements
 
     }
 
+    /**
+     *
+     * calcManaUsed
+     *
+     * @param spellType
+     * @param range
+     * @return
+     */
+
     private int calcManaUsed(int spellType,int range)
     {
         //eventually will need to calculate actual mana use
@@ -695,8 +796,14 @@ public class BattleActivity extends AppCompatActivity implements
     public void tapMsg()
     {
         mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
-                "Tap manaused "+1 ));
+                "Blank space Tap manaused "));
     }
+
+    /**
+     *
+     * soundsLoaded-
+     *
+     */
 
     @Override
     public void soundsLoaded()
@@ -709,6 +816,7 @@ public class BattleActivity extends AppCompatActivity implements
     //
     // selectedMonster- handles when users touch monster buttons.
     //
+    //@param- int Id
     //@note- for tapping on monster buttons
 
     @Override
@@ -728,6 +836,13 @@ public class BattleActivity extends AppCompatActivity implements
 
     }
 
+    /******************************************************************
+     *
+     * loadSpellbook- Converts the json stuff to a spellbook
+     *
+     * @param msg
+     */
+
     private void loadSpellbook(String msg)
     {
         List<UserSpellLevel> spelllist;
@@ -740,10 +855,17 @@ public class BattleActivity extends AppCompatActivity implements
         }
     }
 
+    /***************************************************************************
+     *
+     * loadGestureMap - Convert json info to a gesture map
+     *
+     * @param msg
+     */
+
     private void loadGestureMap(String msg)
     {
         List<GesturePak> gestureMaplist;
-        int i, cnt;
+        int i, cnt=0;
         GesturePak gesturePak;
 
         gestureMaplist= jsonhelper.makeGestureMapList(msg);
@@ -762,8 +884,20 @@ public class BattleActivity extends AppCompatActivity implements
                             gesturePak.spellType);
                 }
             }
+
         }
+
+        mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
+                "loaded local gesture pak "+cnt ));
     }
+
+    /*************************************************************************************
+     *
+     * spellCastGesture-
+     *
+     * @param gestureType
+     * @param monsterID
+     */
 
     void spellCastGesture(GestureType gestureType,int monsterID)
     {

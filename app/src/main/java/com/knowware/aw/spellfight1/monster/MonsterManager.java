@@ -202,7 +202,7 @@ public class MonsterManager implements View.OnClickListener
 
         if(tempMonster!=null)
         {
-            monsterAttackListener.selectedMonster(id);
+            monsterAttackListener.selectedMonster(tempMonster.getMonsterId());
         }
            // hurtOneMonster(tempMonster);
 
