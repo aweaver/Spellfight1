@@ -10,6 +10,7 @@ import android.widget.RelativeLayout;
 
 import com.knowware.aw.spellfight1.GameDimensions;
 import com.knowware.aw.spellfight1.R;
+import com.knowware.aw.spellfight1.UI.MonsterDisplay;
 import com.knowware.aw.spellfight1.pubnub.JSONHelper;
 
 import java.util.ArrayList;
@@ -19,6 +20,8 @@ import java.util.Map;
 
 /**
  * Created by Aaron on 5/5/2017.
+ * MonsterManager - manages hostile monsters
+ *
  */
 
 //for loading bitmaps from resources
@@ -32,101 +35,37 @@ import java.util.Map;
   myButton.setMinimumHeight(image.getHeight());
      */
 
-public class MonsterManager implements View.OnClickListener
+public class MonsterManager implements  MonsterDisplay.PlayerSelectedMonsterListener
 {
-    public interface MonsterAttackListener
-    {
-        void selectedMonster(int Id);
-    }
-
-
     private JSONHelper jsonhelper;
-    private ArrayList<ImageButton> imageButtonList;// list of buttons
     private Map<Integer, Monster> monsterlist;
-    private MonsterAttackListener monsterAttackListener;
+    private MonsterDisplay.PlayerSelectedMonsterListener playerSelListener;
+    private MonsterDisplay monsterDisp;
 
    public MonsterManager()
    {
-       jsonhelper=new JSONHelper();
-       imageButtonList=new ArrayList<ImageButton>();
 
+       jsonhelper=new JSONHelper();
        monsterlist=new HashMap<Integer, Monster>();//use SparseArray later
 
-
    }
 
-    public void addListener(MonsterAttackListener smonsterAttackListener)
-    {
-        monsterAttackListener=smonsterAttackListener;
-    }
-
-   public void fillCtrlList(Activity parentActivity)
+    /**
+     * setMonsterDisp
+     *
+     * @param smonsterDisp
+     */
+   public void setMonsterDisp(MonsterDisplay smonsterDisp)
    {
-       ImageButton tempBtn=null;
-       int btnwidth, xposinc,xpos=0;
-       LinearLayout.LayoutParams params;
-
-
-       tempBtn=(ImageButton)parentActivity.findViewById(R.id.imageButton);
-       tempBtn.setOnClickListener(this);
-
-       imageButtonList.add(tempBtn);
-
-       tempBtn=(ImageButton)parentActivity.findViewById(R.id.imageButton2);
-       tempBtn.setOnClickListener(this);
-       imageButtonList.add(tempBtn);
-
-
-       tempBtn=(ImageButton)parentActivity.findViewById(R.id.imageButton3);
-       tempBtn.setOnClickListener(this);
-       imageButtonList.add(tempBtn);
-
-
-       tempBtn=(ImageButton)parentActivity.findViewById(R.id.imageButton4);
-       tempBtn.setOnClickListener(this);
-
-       imageButtonList.add(tempBtn);
-
-
-       tempBtn=(ImageButton)parentActivity.findViewById(R.id.imageButton5);
-       tempBtn.setOnClickListener(this);
-
-       imageButtonList.add(tempBtn);
-
-
-       tempBtn=(ImageButton)parentActivity.findViewById(R.id.imageButton6);
-       tempBtn.setOnClickListener(this);
-
-       imageButtonList.add(tempBtn);
-
-
-       tempBtn=(ImageButton)parentActivity.findViewById(R.id.imageButton7);
-       tempBtn.setOnClickListener(this);
-
-       imageButtonList.add(tempBtn);
-
-
-       tempBtn=(ImageButton)parentActivity.findViewById(R.id.imageButton8);
-       tempBtn.setOnClickListener(this);
-
-       imageButtonList.add(tempBtn);
-
-
-       hideAll();
+       monsterDisp= smonsterDisp;
    }
 
-   void hideAll()
-   {
-       int a,cnt;
-
-       cnt=imageButtonList.size();
-       for(a=0;a<cnt;a++)
-       {
-           imageButtonList.get(a).setVisibility(View.INVISIBLE);
-       }
-
-   }
-
+    /**
+     * makenewMonsterList
+     *
+      * @param sActivity
+     * @param jsonMsg
+     */
     public void makenewMonsterList(Activity sActivity,String jsonMsg)
     {
         Monster tempMonster=null;
@@ -135,6 +74,7 @@ public class MonsterManager implements View.OnClickListener
         int btnwidth;
         int xposinc;
         int xpos=0;
+        int monsterType;
 
         btnwidth=(GameDimensions.ScreenHeight/8)-2;
 
@@ -147,72 +87,67 @@ public class MonsterManager implements View.OnClickListener
         {
             id=jsonhelper.getIDfromMonsterArray(a,jsonMsg);
 
-            tempMonster= new Monster(id,
-                    (int)imageButtonList.get(a).getX(),(int)imageButtonList.get(a).getY(),
-                    imageButtonList.get(a)
-                    );
+            monsterType=jsonhelper.getTypefromMonsterArray(a,jsonMsg);
 
+            tempMonster= new Monster(id,EnemyType.toEnum(monsterType));
 
-           Bitmap image = BitmapFactory.decodeResource(sActivity.getResources(),R.drawable.roach);
-            imageButtonList.get(a).setImageBitmap(image);
-            imageButtonList.get(a).setMaxWidth(btnwidth);//image.getWidth()
-            imageButtonList.get(a).setMaxHeight(btnwidth);//image.getHeight()
-
-            imageButtonList.get(a).setVisibility(View.VISIBLE);
             monsterlist.put(id,tempMonster);//Integer.valueOf(id)
 
         }
 
     }
 
+    /**
+     * getMonsterlist
+     *
+     * @return
+     */
+    public Map<Integer, Monster> getMonsterlist()
+    {
+        return(monsterlist);
+    }
+
+    /**
+     * setDead
+     *
+     * @param Id
+     */
     public void setDead(int Id)
     {
         Monster tempMonster=null;
         ImageButton imgBtn;
 
-        tempMonster= monsterlist.get(new Integer(Id));
+        tempMonster= monsterlist.get(Integer.valueOf(Id));//new Integer(Id
 
         if(tempMonster!= null)
         {
             tempMonster.setIfDead(true);
-            imgBtn=tempMonster.getImgBtn();
-            imgBtn.setVisibility(View.INVISIBLE);
+           // imgBtn=tempMonster.getImgBtn();
+           // imgBtn.setVisibility(View.INVISIBLE);
         }
     }
 
+    /**
+     * clearMonsterList
+     *
+     */
     public void clearMonsterList()
     {
         monsterlist.clear();
-        hideAll();
     }
 
 
-    @Override
-    public void onClick(View view)
-    {
-        int id;
-        ImageButton tempbutton;
-        Monster tempMonster;
-
-        tempbutton=(ImageButton)view;
-
-        id = tempbutton.getId();
-
-        tempMonster= findMonsterByBtnId(id);
-
-        if(tempMonster!=null)
-        {
-            monsterAttackListener.selectedMonster(tempMonster.getMonsterId());
-        }
-           // hurtOneMonster(tempMonster);
-
-    }
-
+    /**
+     * hurtOneMonster
+     *
+     * @param tempMonster
+     */
     public void hurtOneMonster(Monster tempMonster)
     {
         //send the targeted attack against one enemy message
     }
 
+    /*
     Monster findMonsterByBtnId(int btnId)
     {
         Monster tempMonster=null;
@@ -231,5 +166,57 @@ public class MonsterManager implements View.OnClickListener
         }
         return(null);
     }
+*/
 
+    /**
+     * findMonsterById
+     *
+     * @param Id
+     * @return
+     */
+   public Monster findMonsterById(int Id)
+    {
+        Monster tempMonster=null;
+
+        if(monsterlist.size()<=0)
+            return(null);
+
+        tempMonster= monsterlist.get(Id);
+
+        return(tempMonster);
+    }
+
+    /**
+     * getIfDead
+     *
+     * @param iD
+     * @return
+     */
+    public boolean getIfDead(int iD)
+    {
+           return(monsterlist.get(iD).getIfDead());
+    }
+
+    public EnemyType getType(int iD)
+    {
+        Monster tempMonster;
+
+        tempMonster=(monsterlist.get(iD));
+
+        if (tempMonster==null)
+            return(EnemyType.ERROR);
+
+        return(tempMonster.getType());
+    }
+
+    /**
+     * selectedMonster
+     *
+     * @param Id
+     */
+    @Override
+    public void selectedMonster(int Id)
+    {
+
+    }
 }

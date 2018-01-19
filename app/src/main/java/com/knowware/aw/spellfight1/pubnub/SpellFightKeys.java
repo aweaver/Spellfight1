@@ -27,6 +27,7 @@ public class SpellFightKeys
     static public String ENEMY_HURT_KEY="enemyhurt";
     static public String ENEMY_ONE_DEATH_KEY="oneenemy";
     static public String ENEMY_ALL_DEAD_KEY="allenemies";
+    static public String ENEMY_UNAFFECTED_KEY="enemyunaffected";
 
     static public String VICTORY_KEY="victory";
     static public String CREDITS_KEY="credits";

@@ -1,0 +1,4 @@
+Spellfight1 Todo list
+
+Move game code to game class.
+Provide support for a full combat cycle.

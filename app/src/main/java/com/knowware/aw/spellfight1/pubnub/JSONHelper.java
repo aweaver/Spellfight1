@@ -17,10 +17,21 @@ import java.util.List;
 
 /**
  * Created by Aaron on 4/21/2017.
+ *
+ * JSON helper class that packs and unpacks JSON msgs
+ * Also there are convenience methods
  */
 
 public class JSONHelper
 {
+
+    /*******************************************************************************
+     * makeLoginMsg- packs up login message
+     *
+     * @param srcUUID - sender of message
+     * @return
+     */
+
    public ObjectNode makeLoginMsg(String srcUUID)
     {
        // JSONObject jsonObject;
@@ -41,9 +52,17 @@ public class JSONHelper
         return(logimsg);
     }
 
+    /**
+     *
+     * makeGetCharMsg- makes the GetChar message
+     *
+     * @param srcUUID
+     * @param dest
+     * @return
+     */
     public ObjectNode makeGetCharMsg(String srcUUID,String dest)
     {
-        JSONObject  jsonObject;
+        //JSONObject  jsonObject;
 
         JsonNodeFactory factory = JsonNodeFactory.instance;
         ObjectNode getcharmsg = factory.objectNode();
@@ -56,6 +75,14 @@ public class JSONHelper
         return(getcharmsg);
     }
 
+    /**
+     *
+     * makeDebugMsg
+     *
+     * @param srcUUID
+     * @param msg
+     * @return
+     */
    public ObjectNode makeDebugMsg(String srcUUID, String msg)
     {
         //JSONObject  jsonObject;
@@ -77,6 +104,16 @@ public class JSONHelper
         return(logimsg);
     }
 
+    /**
+     *
+     * makeSpellCastMsg
+     *
+     * @param srcUUID
+     * @param spellId
+     * @param range
+     * @param monsterId
+     * @return
+     */
    public ObjectNode makeSpellCastMsg(String srcUUID,
                                       SpellType spellId,
                                       int range,
@@ -105,6 +142,13 @@ public class JSONHelper
         return(spellcastmsg);
     }
 
+    /**
+     *
+     * makePauseMsg
+     *
+     * @param srcUUID
+     * @return
+     */
     public ObjectNode makePauseMsg(String srcUUID)
     {
        // JSONObject  jsonObject;
@@ -118,6 +162,33 @@ public class JSONHelper
         return(spellcastmsg);
     }
 
+    /**
+     *
+     * makeUnpauseMsg
+     *
+     * @param srcUUID
+     * @return
+     */
+    public ObjectNode makeUnpauseMsg(String srcUUID)
+    {
+        // JSONObject  jsonObject;
+        JsonNodeFactory factory = JsonNodeFactory.instance;
+        ObjectNode spellcastmsg = factory.objectNode();
+
+        spellcastmsg.put(SpellFightKeys.FORMAT_KEY,"JSON");
+        spellcastmsg.put(SpellFightKeys.MSGTYPE_KEY,SpellMsgs.UN_PAUSE.getID());
+        spellcastmsg.put(SpellFightKeys.SRC_KEY,srcUUID);
+
+        return(spellcastmsg);
+    }
+
+    /**
+     *
+     * getMsgType
+     *
+     * @param sMsg
+     * @return
+     */
     public int getMsgType(String sMsg)
     {
         JSONObject jsonObj;
@@ -136,6 +207,13 @@ public class JSONHelper
         return(msgType);
     }
 
+    /**
+     *
+     * getSender
+     *
+     * @param sMsg
+     * @return
+     */
     public String getSender(String sMsg)
     {
         JSONObject jsonObj;
@@ -349,6 +427,24 @@ public class JSONHelper
             jsonObj= new JSONObject(sjsonMsg);
             val= jsonObj.getInt(SpellFightKeys.ENEMY_ONE_DEATH_KEY);
         } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return(val);
+    }
+
+    public int getOneEnemyUnaffectedId(String sjsonMsg)
+    {
+        JSONObject jsonObj;
+        int val=0;
+
+        try
+        {
+            jsonObj= new JSONObject(sjsonMsg);
+            val= jsonObj.getInt(SpellFightKeys.ENEMY_UNAFFECTED_KEY);
+        }
+        catch (JSONException e)
+        {
             e.printStackTrace();
         }
 

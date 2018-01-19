@@ -1,12 +1,12 @@
 package com.knowware.aw.spellfight1;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.media.SoundPool;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -14,9 +14,14 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.View;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.knowware.aw.spellfight1.UI.MonsterDisplay;
+import com.knowware.aw.spellfight1.UI.MsgOkDlgFrag;
 import com.knowware.aw.spellfight1.magic.GesturePak;
 import com.knowware.aw.spellfight1.magic.GestureSpellMap;
 import com.knowware.aw.spellfight1.magic.GestureType;
@@ -28,6 +33,7 @@ import com.knowware.aw.spellfight1.monster.MonsterManager;
 import com.knowware.aw.spellfight1.pubnub.JSONHelper;
 import com.knowware.aw.spellfight1.pubnub.PubnubService;
 import com.knowware.aw.spellfight1.pubnub.SpellMsgs;
+import com.knowware.aw.spellfight1.util.BitmapManager;
 import com.knowware.aw.spellfight1.util.MakeUniqueId;
 import com.knowware.aw.spellfight1.util.RandNum;
 import com.knowware.aw.spellfight1.util.SoundPoolManager;
@@ -38,9 +44,6 @@ import org.json.JSONObject;
 
 import java.util.List;
 
-import static com.knowware.aw.spellfight1.magic.Range.AOE;
-import static com.knowware.aw.spellfight1.util.SoundPoolManager.HUMAN_DIE_ID;
-
 //horizontal pbar color code https://android--code.blogspot.com/2015/08/android-progressbar-color.html
 
 //some parts will be moved out eventually.
@@ -49,11 +52,13 @@ import static com.knowware.aw.spellfight1.util.SoundPoolManager.HUMAN_DIE_ID;
 public class BattleActivity extends AppCompatActivity implements
         Spellgesture.SpellGestureListener,
         SoundPoolManager.SoundPoolListener,
-        MonsterManager.MonsterAttackListener
+        MsgOkDlgFrag.MsgOkDlgFragmentListener,
+        View.OnClickListener,
+        MonsterDisplay.PlayerSelectedMonsterListener
 {
     public GameDimensions gameDimensions;
     public PubnubService mService;
-
+    public BitmapManager bitmapManager;
 
     private IntentFilter PubnubResponseFilter;
     private JSONHelper jsonhelper;
@@ -72,6 +77,7 @@ public class BattleActivity extends AppCompatActivity implements
     private RandNum rndnum;
     private int attackType;
     private TextView msgView;
+    private MonsterDisplay monsterDisplay;
 
     //for player
     private int hp;
@@ -109,10 +115,8 @@ public class BattleActivity extends AppCompatActivity implements
         xpPbar=(ProgressBar) findViewById(R.id.xppb);
         msgView=(TextView)findViewById(R.id.textView);
 
+        //setupSelections();// not being handled here
 
-        monsterManager= new MonsterManager();
-        monsterManager.fillCtrlList(this);
-        monsterManager.addListener(this);
     }
 
     //////////////////////////////////////////////////////////////////
@@ -162,6 +166,17 @@ public class BattleActivity extends AppCompatActivity implements
         soundPoolManager= new SoundPoolManager();
         soundPoolManager.addListener(this);
         soundPoolManager.init(this);
+
+        bitmapManager= new BitmapManager();
+        bitmapManager.init();
+        bitmapManager.setParentActivity(this);
+
+        monsterManager= new MonsterManager();
+
+        monsterDisplay= new MonsterDisplay();
+        monsterDisplay.addListener(this);
+        monsterDisplay.fillCtrlList(this);
+        monsterDisplay.setBitmapManager(bitmapManager);
 
     }
 
@@ -285,15 +300,15 @@ public class BattleActivity extends AppCompatActivity implements
                 if(stype.equals("s"))
                     handleMsgs(sTemp);
                 else
-                    handleData(sTemp);
+                                                                                                                                                                        handleData(sTemp);
 
                 //dbgSender.sendMessage("Message from:"+" "+sSource+" "+jsonReply.getString("msg"));
-                //dbgSender.sendMessage("Local Source: "+sLSource);
+                //dbgSender.sendMessage("Local                  Source: "+sLSource);
 
             }
             catch(JSONException e)
             {
-                e.printStackTrace();
+                e.printStackTrace()                                                                                                                                ;
             }
 
         }
@@ -304,8 +319,8 @@ public class BattleActivity extends AppCompatActivity implements
     ////////////////////////////////////////////////////////////
     //handleMsgs- This area gets the messages from the service
     //
-    //@param- String smsgs- incoming json msg
-    //@note -
+    // @param- String smsgs- incoming json msg
+    // @note -
 
     void handleMsgs(String smsgs)
     {
@@ -319,29 +334,37 @@ public class BattleActivity extends AppCompatActivity implements
      * handleData
      *
      * @param smsgs- json info
+     *
+     * @note since this is a party line socket, sent messages also show up. Have to ignore our sent messages
+     * can be used later for debug purposes.
      */
    void handleData(String smsgs)
    {
        JSONObject jsonReply=null;
        String dest;
-        int imsgType;
+       String src;
+       int imsgType;
 
        if(!jsonhelper.ifJSONMsg(smsgs))
            return;
 
-       dest=jsonhelper.getReceiver(smsgs);
+       //dest=jsonhelper.getReceiver(smsgs);
+                               src=jsonhelper.getSender(smsgs);
 
        //picked up our own message
-       if(dest==null)
+       if(src==null)//dest
            return;
 
-       if(dest.equals(localUUID)==false)
+       if(src.equals(localUUID))//bail if this is from us
            return;
 
        try
        {
            jsonReply=new JSONObject(smsgs);
            imsgType=jsonhelper.getMsgType(smsgs);
+
+           mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
+                   "Msg id "+imsgType));
 
            processMsgs(imsgType,smsgs);
 
@@ -352,7 +375,7 @@ public class BattleActivity extends AppCompatActivity implements
        }
    }
 
-    /**
+    /*******************************************************************************
      *
      * processMsgs- processes messages from server
      *
@@ -378,6 +401,8 @@ public class BattleActivity extends AppCompatActivity implements
             //turn off enemy attacks
             mService.sendMsgs(jsonhelper.makePauseMsg(localUUID));
 
+
+
             // pubnubComms.sendMsgs(jsonhelper.makePauseMsg(localUUID));
         }
         else if(SpellMsgs.UPDATE_PLAYER_HEALTH.getID()==msgType)
@@ -390,8 +415,8 @@ public class BattleActivity extends AppCompatActivity implements
 
             hpPct= ((float) hp/ (float)hpMax);//100.0f
 
-            mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
-                    "hppct used "+hpPct+"hp "+hp ));
+           // mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
+            //        "hppct used "+hpPct+"hp "+hp ));
 
             hpPcti= (int)(hpPct*100.0f);
 
@@ -413,8 +438,8 @@ public class BattleActivity extends AppCompatActivity implements
             manapct= (float) mana/(float)manaMax;
             manapct=manapct * 100;
 
-            mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
-                    "manapct "+manapct ));
+          //  mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
+           //         "manapct "+manapct ));
 
             manaPbar.setProgress((int)manapct);
             manaPbar.setMax(100);//percentage based
@@ -425,14 +450,29 @@ public class BattleActivity extends AppCompatActivity implements
         else if(SpellMsgs.ENEMY_LIST.getID()==msgType)//list of enemies
         {
             monsterManager.makenewMonsterList(this,msg);
+            monsterDisplay.associateMonsterToButtons(monsterManager.getMonsterlist());
+
+            makeIntroDialog();
         }
         else if(SpellMsgs.PLAYER_DEATH.getID()==msgType)
         {
             playerDeath();
+
+            //turn off enemy attacks
+            mService.sendMsgs(jsonhelper.makePauseMsg(localUUID));
         }
         else if(SpellMsgs.ENEMY_HURT.getID()==msgType)
         {
+            int id;
+
             soundPoolManager.play(SoundPoolManager.ROACH_NOISE_ID,0.5f);
+
+            id=jsonhelper.getEnemyHurtId(msg);
+            monsterDisplay.updateMonsterBtn(id,bitmapManager.getMonsterResId(monsterManager.getType(id)),
+                    50);
+
+            sendDbgMsg("Enemy hurt "+id);
+
            // soundList.playsound(SoundList.INSECT_HURT_ID);
 
         }
@@ -443,19 +483,42 @@ public class BattleActivity extends AppCompatActivity implements
 
             id=jsonhelper.getOneEnemyDeadId(msg);
 
+            monsterDisplay.updateMonsterBtn(id,bitmapManager.getMonsterResId(monsterManager.getType(id)),
+                    50);
+
+            monsterDisplay.monsterDead(id);
             monsterManager.setDead(id);
 
-            mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
-                    " Dead Monster id "+id ));
+          //  mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
+          //          " Dead Monster id "+id ));
+
+            sendDbgMsg("Enemy dead "+id);
+        }
+        else if(SpellMsgs.ENEMY_UNAFFECTED.getID()==msgType)
+        {
+            int id;
+
+            // mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
+            //       "All dead!" ));
+
+            sendDbgMsg("Not hurt");
+
+            id=jsonhelper.getOneEnemyUnaffectedId(msg);
+            monsterDisplay.updateMonsterBtn(id,bitmapManager.getMonsterResId(monsterManager.getType(id)),
+                    50);
+
         }
         else if(SpellMsgs.ENEMY_ALL_DEATH.getID()==msgType)
         {
-             int id;
+           //  int id;
 
-            mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
-                    "All dead!" ));
+           // mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
+             //       "All dead!" ));
 
-            monsterManager.clearMonsterList();
+            sendDbgMsg("All dead ");
+
+            monsterDisplay.monsterAllDead();
+
         }
         else if(SpellMsgs.ENEMY_ATTACK.getID()==msgType)//attacks
         {
@@ -465,7 +528,7 @@ public class BattleActivity extends AppCompatActivity implements
         //after this, move on to the next message/mode
         else if(SpellMsgs.VICTORY.getID()==msgType)
         {
-          //  handleVictory(msg);
+            handleVictory(msg);
         }
         else if(SpellMsgs.SPELLBOOK.getID()==msgType)
         {
@@ -475,8 +538,9 @@ public class BattleActivity extends AppCompatActivity implements
         {
             loadGestureMap(msg);
 
-            mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
-                    "Got gesture" ));
+          //  mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
+          //          "Got gesture" ));
+
         }
         else if(SpellMsgs.NOERROR.getID()==msgType)
         {
@@ -488,6 +552,64 @@ public class BattleActivity extends AppCompatActivity implements
         }
     }
 
+    /**********************************************************************
+     *
+     * makeIntroDialog-
+     *
+     */
+
+    private void makeIntroDialog()
+    {
+        MsgOkDlgFrag dlg;
+
+        dlg=MsgOkDlgFrag.newInstance("Intro","Left swipe or tap on enemies to attack.",MsgOkDlgFrag.INTRO);
+
+        dlg.show(getFragmentManager(), "dialog");
+
+    }
+
+    /**********************************************************************
+     *
+     * makeDeathDialog-
+     *
+     */
+
+    private void makeDeathDialog()
+    {
+        MsgOkDlgFrag dlg;
+
+        dlg=MsgOkDlgFrag.newInstance("Death","You are dead.",MsgOkDlgFrag.DEATH);
+
+        dlg.show(getFragmentManager(), "dialog");
+
+    }
+
+    /**********************************************************************
+     *
+     * makeVictoryDialog-
+     *
+     * @param title- dialog box title
+     * @param msg- message to display
+     *
+     */
+
+    private void makeVictoryDialog(String title, String msg)
+    {
+        MsgOkDlgFrag dlg;
+
+        dlg=MsgOkDlgFrag.newInstance(title,msg,MsgOkDlgFrag.VICTORY);
+
+        dlg.show(getFragmentManager(), "dialog");
+
+    }
+
+    private void sendDbgMsg(String msg)
+    {
+        mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
+                msg ));
+    }
+
+
     /******************************************************************************
      * updateAttackType-
      *
@@ -496,8 +618,8 @@ public class BattleActivity extends AppCompatActivity implements
 
     private void updateAttackType(String smsgs)
     {
-        int id;
-        int size=0;
+       // int id;
+       // int size=0;
 
 
         /*
@@ -535,6 +657,7 @@ public class BattleActivity extends AppCompatActivity implements
     void playerDeath()
     {
         pickPlayerDeath();
+        makeDeathDialog();
     }
 
 
@@ -639,7 +762,7 @@ public class BattleActivity extends AppCompatActivity implements
      *
      * onTouchEvent-
      *
-     * @param event
+     * @param event - event
      * @return-
      */
 
@@ -655,7 +778,7 @@ public class BattleActivity extends AppCompatActivity implements
      *
      * flingMsg-
      *
-     * @param iDir
+     * @param iDir- direction of the flings
      */
 
     @Override
@@ -664,6 +787,8 @@ public class BattleActivity extends AppCompatActivity implements
         int manaused;
         int spellId;
         int cost;
+        int resID;
+        SpellType spellType;
 
         //all flings are AOE attacks
 
@@ -680,7 +805,14 @@ public class BattleActivity extends AppCompatActivity implements
 
             case Spellgesture.LT:
 
+                spellType=  gestureSpellMap.getgestureMap(GestureType.LEFT_FLING);
+
+                resID= bitmapManager.getPlayerAttackSpellResID(spellType,Range.AOE);
+
+                monsterDisplay.overlayAllMonsters(resID);
                 spellCastGesture(GestureType.LEFT_FLING,-1);
+
+
 
                // mService.sendMsgs(  jsonhelper.makeDebugMsg(localUUID,
                  //       "left manaused "+1 ));
@@ -719,7 +851,6 @@ public class BattleActivity extends AppCompatActivity implements
                     //mService.sendMsgs(  jsonhelper.makeSpellCastMsg(localUUID, 5 ));
                 }
 */
-
 
                 break;
 
@@ -787,6 +918,34 @@ public class BattleActivity extends AppCompatActivity implements
 
     }
 
+    /**
+     *handleVictory
+     *
+     *
+     * @param msg
+     */
+
+    private void handleVictory(String msg)
+    {
+        int xp, credits;
+        String vicMsg;
+
+        xp = jsonhelper.getXp(msg);
+        credits = jsonhelper.getCredits(msg);
+
+        vicMsg = "You've won " + credits + " credits " + xp + " XP";
+
+        makeVictoryDialog("Victory", vicMsg);
+
+        //send back credits
+        mService.sendMsgs(jsonhelper.makeDebugMsg(localUUID,
+                "Credits " + credits + " Xp " + xp)
+        );
+
+        monsterManager.clearMonsterList();
+    }
+
+
     //////////////////////////////////////
     //
     //
@@ -809,30 +968,6 @@ public class BattleActivity extends AppCompatActivity implements
     public void soundsLoaded()
     {
         Log.d("BattleActivity","Sound loaded");
-
-    }
-
-    /////////////////////////////////////////////////
-    //
-    // selectedMonster- handles when users touch monster buttons.
-    //
-    //@param- int Id
-    //@note- for tapping on monster buttons
-
-    @Override
-    public void selectedMonster(int Id)
-    {
-        int manaused=0;//always selected attack
-
-        spellCastGesture(GestureType.TAP,Id);
-
-      //  manaused= calcManaUsed(attackType);
-
-       /* if(manaused>0)
-        {
-            soundPoolManager.play(SoundPoolManager.FIRE_SMALLFBALL_ID);
-            //send attack one monster message
-        }*/
 
     }
 
@@ -859,7 +994,7 @@ public class BattleActivity extends AppCompatActivity implements
      *
      * loadGestureMap - Convert json info to a gesture map
      *
-     * @param msg
+     * @param msg - json msg
      */
 
     private void loadGestureMap(String msg)
@@ -935,6 +1070,8 @@ public class BattleActivity extends AppCompatActivity implements
             {
                 soundPoolManager.play(SoundPoolManager.FIRE_AOE_ID);
 
+
+
                 //send msg to server, needs new msg
                 mService.sendMsgs( jsonhelper.makeSpellCastMsg(localUUID,
                         spellId,
@@ -960,4 +1097,72 @@ public class BattleActivity extends AppCompatActivity implements
 
     }
 
+    /*******************************************************************
+     *
+     * onOk
+     *
+     * @param type
+     */
+
+    @Override
+    public void onOk(int type)
+    {// send unpause msg
+
+        if(type==MsgOkDlgFrag.INTRO)
+        {
+            //turn on enemy attacks
+            mService.sendMsgs(jsonhelper.makeUnpauseMsg(localUUID));
+        }
+        else if(type==MsgOkDlgFrag.VICTORY)
+        {
+            doVictory();
+        }
+        else
+        {
+
+        }
+    }
+
+    void doVictory()
+    {
+
+    }
+
+    public void setupSelections()
+    {
+
+        findViewById(R.id.imageButton).setOnClickListener(this);
+        findViewById(R.id.imageButton2).setOnClickListener(this);
+        findViewById(R.id.imageButton3).setOnClickListener(this);
+        findViewById(R.id.imageButton4).setOnClickListener(this);
+        findViewById(R.id.imageButton5).setOnClickListener(this);
+        findViewById(R.id.imageButton6).setOnClickListener(this);
+        findViewById(R.id.imageButton7).setOnClickListener(this);
+        findViewById(R.id.imageButton8).setOnClickListener(this);
+
+    }
+
+
+    /////////////////////////////////////////////////
+    //
+    // selectedMonster- handles when users touch monster buttons.
+    //
+    //@param- int Id
+    //@note- for tapping on monster buttons
+
+    @Override
+    public void onClick(View view)
+    {
+        int Id;
+        Id=monsterDisplay.getMonsterIDFromBtn(view.getId());
+
+        spellCastGesture(GestureType.TAP,Id);
+    }
+
+    @Override
+    public void selectedMonster(int Id)
+    {
+        spellCastGesture(GestureType.TAP,Id);
+
+    }
 }//End of BattleActivity

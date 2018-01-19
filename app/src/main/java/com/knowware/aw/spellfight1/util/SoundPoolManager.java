@@ -12,6 +12,8 @@ import static android.content.Context.AUDIO_SERVICE;
 
 /**
  * Created by Aaron on 5/12/2017.
+ *
+ * SoundPoolManager- manages the sound effects
  */
 
 public class SoundPoolManager implements SoundPool.OnLoadCompleteListener

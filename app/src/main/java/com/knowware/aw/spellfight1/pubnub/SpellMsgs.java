@@ -34,6 +34,7 @@ public enum SpellMsgs
     ENEMY_HURT(600),
     ENEMY_ONE_DEATH(610),
     ENEMY_ALL_DEATH(620),
+    ENEMY_UNAFFECTED(630),
 
     VICTORY(700),
 

@@ -8,42 +8,53 @@ import android.widget.ImageButton;
 
 public class Monster {
     private int ID;
-    private int x;
-    private int y;
     private ImageButton imgBtn;
     private boolean bDead;
+    private EnemyType monsterType;
 
-    Monster(int sID, int sX, int sY, ImageButton sImgbtn) {
+    Monster(int sID,EnemyType monType)
+    {
         ID = sID;
-        x = sX;
-        y = sY;
-        imgBtn = sImgbtn;
+        monsterType=monType;
         bDead = false;
     }
 
-    public int getX() {
-        return (x);
-    }
-
-    public int getY() {
-        return (y);
-    }
-
+    /**
+     * getIfDead
+     *
+     * @return
+     */
     public boolean getIfDead() {
         return (bDead);
     }
 
+    /**
+     * setIfDead
+     *
+     * @param sIfDead
+     */
     public void setIfDead(boolean sIfDead) {
         bDead = sIfDead;
     }
 
-    public ImageButton getImgBtn() {
-        return (imgBtn);
-    }
-
+    /**
+     * getMonsterId
+     *
+     * @return
+     */
     public int getMonsterId()
     {
         return(ID);
+    }
+
+    /**
+     * getType
+     *
+     * @return
+     */
+    public EnemyType getType()
+    {
+        return monsterType;
     }
 
 }

@@ -103,8 +103,8 @@ public class PubnubService extends Service
         public PubNubThread()
         {
             PNConfiguration pnConfiguration = new PNConfiguration();
-            pnConfiguration.setSubscribeKey("");
-            pnConfiguration.setPublishKey("");
+            pnConfiguration.setSubscribeKey("sub-c-c5fbbb4a-81ba-11e6-974e-0619f8945a4f");
+            pnConfiguration.setPublishKey("pub-c-9e993c00-fe99-4a42-8193-5375fb247de6");
 
             pubnub = new PubNub(pnConfiguration);
 
